@@ -1,12 +1,15 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask_cors import CORS
 import io
 import torch
 import torchaudio
 import numpy as np
 from transformers import Wav2Vec2ForCTC, Wav2Vec2Processor
 from audio_cleaner import AudioCleaner
+import os
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='.', static_url_path='')
+CORS(app)
 
 # Load pre-trained model and processor (outside of a function for efficiency)
 processor = Wav2Vec2Processor.from_pretrained("indonesian-nlp/wav2vec2-luganda")
@@ -63,6 +66,12 @@ def audio_preprocessor(audio_bytes, clean_audio=True, reduction_strength=0.5):
         "before_cleaning": stats_before,
         "after_cleaning": stats_after
     }
+
+# Serve the web UI
+@app.route('/')
+def index():
+    """Serve the main web UI."""
+    return send_from_directory('.', 'index.html')
 
 @app.route("/health", methods=["GET"])
 def health_check():
@@ -207,4 +216,15 @@ def transcribe_and_translate():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
+    print("\n" + "="*60)
+    print("🎙️  Luganda Speech-to-Text API with Audio Cleaning")
+    print("="*60)
+    print("\n✅ Opening web UI at: http://localhost:5000")
+    print("\n📝 Instructions:")
+    print("   1. Upload your audio file (WAV, MP3, FLAC)")
+    print("   2. Adjust noise reduction strength (0.3-0.7 recommended)")
+    print("   3. Click 'Transcribe Audio'")
+    print("   4. View your transcription and audio metrics\n")
+    print("="*60 + "\n")
+    
     app.run(debug=True, host="0.0.0.0", port=5000)
