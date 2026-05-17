@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luganda Speech-to-Text with Audio Cleaning</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 700px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .upload-section {
+            margin-bottom: 30px;
+        }
+
+        .upload-box {
+            border: 3px dashed #667eea;
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9ff;
+        }
+
+        .upload-box:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .upload-box.dragover {
+            border-color: #764ba2;
+            background: #e8ebff;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .upload-subtext {
+            color: #999;
+            font-size: 14px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-name {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f0f2ff;
+            border-radius: 5px;
+            color: #667eea;
+            font-size: 14px;
+            display: none;
+        }
+
+        .file-name.active {
+            display: block;
+        }
+
+        .settings {
+            background: #f8f9ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .setting-group {
+            margin-bottom: 15px;
+        }
+
+        .setting-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .setting-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .setting-value {
+            color: #667eea;
+            font-weight: 700;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e0e0e0;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #764ba2;
+            transform: scale(1.1);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            background: #764ba2;
+            transform: scale(1.1);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .checkbox-label {
+            cursor: pointer;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #f0f2ff;
+            color: #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #e8ebff;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 14px;
+        }
+
+        .status.show {
+            display: block;
+        }
+
+        .status.loading {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-left: 4px solid #1976d2;
+        }
+
+        .status.success {
+            background: #e8f5e9;
+            color: #388e3c;
+            border-left: 4px solid #388e3c;
+        }
+
+        .status.error {
+            background: #ffebee;
+            color: #d32f2f;
+            border-left: 4px solid #d32f2f;
+        }
+
+        .results {
+            background: #f8f9ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .result-item {
+            margin-bottom: 20px;
+        }
+
+        .result-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .result-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .result-content {
+            background: white;
+            padding: 12px;
+            border-radius: 5px;
+            color: #666;
+            font-size: 14px;
+            word-break: break-word;
+            border-left: 3px solid #667eea;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 12px;
+            border-radius: 5px;
+            border-left: 3px solid #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .stat-value.improved {
+            color: #388e3c;
+        }
+
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(102, 126, 234, 0.3);
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .copy-button {
+            padding: 5px 10px;
+            font-size: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .copy-button:hover {
+            background: #764ba2;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 22px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎙️ Luganda Speech-to-Text</h1>
+            <p>Upload your audio to transcribe and clean</p>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="upload-section">
+            <div class="upload-box" id="uploadBox">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">Click to upload or drag and drop</div>
+                <div class="upload-subtext">WAV, MP3, or FLAC (max 50MB)</div>
+            </div>
+            <div class="file-name" id="fileName"></div>
+            <input type="file" id="audioFile" accept=".wav,.mp3,.flac,.m4a">
+        </div>
+
+        <!-- Settings -->
+        <div class="settings">
+            <div class="setting-group">
+                <label class="checkbox-group">
+                    <input type="checkbox" id="cleanAudio" checked>
+                    <span class="checkbox-label">Enable Audio Cleaning</span>
+                </label>
+            </div>
+
+            <div class="setting-group">
+                <div class="setting-label">
+                    <span>Noise Reduction Strength</span>
+                    <span class="setting-value" id="strengthValue">0.5</span>
+                </div>
+                <input type="range" id="reductionStrength" min="0" max="1" step="0.1" value="0.5">
+                <div style="font-size: 12px; color: #999; margin-top: 5px;">
+                    Low = Preserve speech quality | High = Aggressive noise removal
+                </div>
+            </div>
+        </div>
+
+        <!-- Status -->
+        <div class="status" id="status"></div>
+
+        <!-- Buttons -->
+        <div class="button-group">
+            <button class="btn-primary" id="transcribeBtn" disabled>Transcribe Audio</button>
+            <button class="btn-secondary" id="clearBtn">Clear</button>
+        </div>
+
+        <!-- Results -->
+        <div class="results" id="results"></div>
+    </div>
+
+    <script>
+        const uploadBox = document.getElementById('uploadBox');
+        const audioFile = document.getElementById('audioFile');
+        const fileName = document.getElementById('fileName');
+        const cleanAudio = document.getElementById('cleanAudio');
+        const reductionStrength = document.getElementById('reductionStrength');
+        const strengthValue = document.getElementById('strengthValue');
+        const transcribeBtn = document.getElementById('transcribeBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const status = document.getElementById('status');
+        const results = document.getElementById('results');
+
+        let selectedFile = null;
+
+        // Upload box interactions
+        uploadBox.addEventListener('click', () => audioFile.click());
+
+        uploadBox.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadBox.classList.add('dragover');
+        });
+
+        uploadBox.addEventListener('dragleave', () => {
+            uploadBox.classList.remove('dragover');
+        });
+
+        uploadBox.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadBox.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFileSelect(files[0]);
+            }
+        });
+
+        // File input change
+        audioFile.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
+
+        function handleFileSelect(file) {
+            selectedFile = file;
+            fileName.textContent = `✓ ${file.name}`;
+            fileName.classList.add('active');
+            transcribeBtn.disabled = false;
+            uploadBox.style.opacity = '0.6';
+        }
+
+        // Update strength value display
+        reductionStrength.addEventListener('input', (e) => {
+            strengthValue.textContent = e.target.value;
+        });
+
+        // Transcribe button
+        transcribeBtn.addEventListener('click', async () => {
+            if (!selectedFile) {
+                showStatus('Please select an audio file', 'error');
+                return;
+            }
+
+            transcribeBtn.disabled = true;
+            showStatus('<span class="loader"></span>Processing your audio...', 'loading');
+            results.classList.remove('show');
+
+            try {
+                const formData = new FormData();
+                formData.append('audio', selectedFile);
+
+                const params = new URLSearchParams({
+                    clean_audio: cleanAudio.checked,
+                    reduction_strength: reductionStrength.value
+                });
+
+                const response = await fetch(`http://localhost:5000/transcribe?${params}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'API error');
+                }
+
+                const data = await response.json();
+                displayResults(data);
+                showStatus('✓ Transcription complete!', 'success');
+
+            } catch (error) {
+                showStatus(`✗ Error: ${error.message}`, 'error');
+                console.error('Error:', error);
+            } finally {
+                transcribeBtn.disabled = false;
+            }
+        });
+
+        // Clear button
+        clearBtn.addEventListener('click', () => {
+            selectedFile = null;
+            audioFile.value = '';
+            fileName.classList.remove('active');
+            results.classList.remove('show');
+            status.classList.remove('show');
+            transcribeBtn.disabled = true;
+            uploadBox.style.opacity = '1';
+        });
+
+        function showStatus(message, type) {
+            status.innerHTML = message;
+            status.className = `status show ${type}`;
+        }
+
+        function displayResults(data) {
+            let html = '';
+
+            // Transcription
+            html += `
+                <div class="result-item">
+                    <div class="result-title">📝 Transcription</div>
+                    <div class="result-content">
+                        ${data.transcription || 'No transcription available'}
+                        <button class="copy-button" onclick="copyToClipboard('${data.transcription}')">Copy</button>
+                    </div>
+                </div>
+            `;
+
+            // Audio Cleaning Info
+            if (data.audio_cleaning_applied) {
+                html += `
+                    <div class="result-item">
+                        <div class="result-title">🔧 Audio Cleaning Applied</div>
+                        <div class="result-content">✓ Audio was cleaned and enhanced for better transcription</div>
+                    </div>
+                `;
+            }
+
+            // Audio Statistics
+            if (data.audio_stats) {
+                const before = data.audio_stats.before_cleaning;
+                const after = data.audio_stats.after_cleaning;
+
+                html += `
+                    <div class="result-item">
+                        <div class="result-title">📊 Audio Quality Metrics</div>
+                        <div class="stats-grid">
+                            <div class="stat-box">
+                                <div class="stat-label">Duration</div>
+                                <div class="stat-value">${after.duration_seconds}s</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-label">Loudness (RMS)</div>
+                                <div class="stat-value">${after.rms_db} dB</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-label">Before SNR</div>
+                                <div class="stat-value">${before.snr_estimate_db} dB</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-label">After SNR</div>
+                                <div class="stat-value improved">${after.snr_estimate_db} dB ⬆️</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            results.innerHTML = html;
+            results.classList.add('show');
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Copied to clipboard!');
+            });
+        }
+
+        // Check API health on load
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch('http://localhost:5000/health');
+                if (!response.ok) {
+                    showStatus('⚠️ API is not responding. Make sure to run: python myproject/myApp.py', 'error');
+                }
+            } catch (error) {
+                showStatus('⚠️ API is not responding. Make sure to run: python myproject/myApp.py', 'error');
+            }
+        });
+    </script>
+</body>
+</html>
